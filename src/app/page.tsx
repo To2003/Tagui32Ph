@@ -1,6 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { obtenerPrecioBaseCentavos } from "@/lib/db/configuracion";
+import { formatearPrecio } from "@/lib/fecha";
+
+// El precio sale de la tabla `configuracion`; revalidamos cada 5 minutos
+// para que un cambio desde /admin/config no requiera redeploy.
+export const revalidate = 300;
 
 // Datos de ejemplo hardcodeados — en la Fase 6 esto sale de la tabla `portfolio`
 // y se administra desde /admin/portfolio.
@@ -36,18 +42,9 @@ const pasos = [
   },
 ];
 
-// En la Fase 6 esto sale de la tabla `configuracion`, editable desde /admin/config.
-const precioBaseCentavos = 1500000;
+export default async function Home() {
+  const precioBaseCentavos = await obtenerPrecioBaseCentavos();
 
-function formatearPrecio(centavos: number) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(centavos / 100);
-}
-
-export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero */}

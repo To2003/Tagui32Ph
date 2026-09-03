@@ -329,3 +329,5 @@ Aunque el objetivo es lanzar completo, conviene construirlo en este orden para p
 4. **Galería:** código de acceso, cookie de sesión, grilla de previews, lightbox.
 5. **Pagos:** Checkout Pro en modo test, webhook, idempotencia, habilitación de descarga, URL firmada del ZIP.
 6. **Cierre:** cron de vencimiento, mails de aviso, portfolio administrable, términos, SEO básico, y pasaje de MP a producción.
+
+sin bugs porfi
