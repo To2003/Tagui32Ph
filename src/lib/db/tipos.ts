@@ -25,3 +25,22 @@ export type Evento = {
   created_at: string;
   updated_at: string;
 };
+
+export type Foto = {
+  id: string;
+  evento_id: string;
+  preview_key: string;
+  ancho: number | null;
+  alto: number | null;
+  orden: number;
+  created_at: string;
+};
+
+export type CodigoAcceso = {
+  id: string;
+  evento_id: string;
+  codigo: string;
+  expira_en: string;
+  usos: number;
+  created_at: string;
+};

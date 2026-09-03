@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { EstadoBadge } from "@/components/estado-badge";
-import { formatearFechaHora, formatearPrecio } from "@/lib/fecha";
+import { formatearFecha, formatearFechaHora, formatearPrecio } from "@/lib/fecha";
 import { Button } from "@/components/ui/button";
+import { EditarPrecio } from "@/components/admin/editar-precio";
+import { SubidaFotos } from "@/components/admin/subida-fotos";
+import { ReenviarMailBoton } from "@/components/admin/reenviar-mail-boton";
 import { confirmarEvento, rechazarEvento } from "../actions";
 import type { Evento } from "@/lib/db/tipos";
 
@@ -36,6 +39,26 @@ export default async function EventoDetallePage({
   }
 
   const e = evento as Evento;
+  const yaTieneFotos = !["pendiente", "confirmado", "rechazado"].includes(e.estado);
+  const precioEditable = e.estado !== "pagado" && e.estado !== "vencido";
+
+  let cantidadFotos = 0;
+  let codigoAcceso: { codigo: string; expira_en: string } | null = null;
+
+  if (yaTieneFotos) {
+    const [{ count }, { data: codigo }] = await Promise.all([
+      supabase.from("fotos").select("*", { count: "exact", head: true }).eq("evento_id", id),
+      supabase
+        .from("codigos_acceso")
+        .select("codigo, expira_en")
+        .eq("evento_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    cantidadFotos = count ?? 0;
+    codigoAcceso = codigo;
+  }
 
   return (
     <div className="max-w-2xl">
@@ -68,7 +91,13 @@ export default async function EventoDetallePage({
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wider text-muted-foreground">Precio del pack</dt>
-          <dd className="mt-1">{formatearPrecio(e.precio_centavos)}</dd>
+          <dd className="mt-1">
+            {precioEditable ? (
+              <EditarPrecio eventoId={e.id} precioCentavos={e.precio_centavos} />
+            ) : (
+              formatearPrecio(e.precio_centavos)
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -107,10 +136,35 @@ export default async function EventoDetallePage({
       )}
 
       {e.estado === "confirmado" && (
-        <p className="mt-8 border-t border-border/60 pt-6 text-sm text-muted-foreground">
-          Cuando tengas las fotos editadas, la carga del pack y el código de
-          acceso se habilitan acá (Fase 3).
-        </p>
+        <div className="mt-8 border-t border-border/60 pt-6">
+          <SubidaFotos eventoId={e.id} />
+        </div>
+      )}
+
+      {yaTieneFotos && (
+        <div className="mt-8 border-t border-border/60 pt-6">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Pack entregado</p>
+          <p className="mt-2">
+            {cantidadFotos} fotos ·{" "}
+            {e.zip_bytes ? `${(e.zip_bytes / 1024 / 1024).toFixed(1)} MB de originales` : "—"}
+          </p>
+          {codigoAcceso && (
+            <>
+              <p className="mt-3">
+                Código:{" "}
+                <span className="font-heading text-xl tracking-widest">
+                  {codigoAcceso.codigo}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Vence el {formatearFecha(codigoAcceso.expira_en)}
+              </p>
+              <div className="mt-4">
+                <ReenviarMailBoton eventoId={e.id} />
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

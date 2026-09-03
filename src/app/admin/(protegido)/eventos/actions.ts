@@ -33,6 +33,24 @@ export async function confirmarEvento(eventoId: string) {
   revalidatePath(`/admin/eventos/${eventoId}`);
 }
 
+export async function actualizarPrecio(eventoId: string, precioCentavos: number) {
+  if (!Number.isFinite(precioCentavos) || precioCentavos <= 0) {
+    return { error: "Precio inválido." };
+  }
+
+  const supabase = crearClienteAdmin();
+  const { error } = await supabase
+    .from("eventos")
+    .update({ precio_centavos: Math.round(precioCentavos) })
+    .eq("id", eventoId);
+
+  if (error) {
+    return { error: "No se pudo actualizar el precio." };
+  }
+
+  revalidatePath(`/admin/eventos/${eventoId}`);
+}
+
 export async function rechazarEvento(eventoId: string) {
   const supabase = crearClienteAdmin();
 

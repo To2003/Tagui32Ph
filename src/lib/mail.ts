@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { formatearFechaHora, formatearPrecio } from "@/lib/fecha";
+import { formatearFecha, formatearFechaHora, formatearPrecio } from "@/lib/fecha";
 import type { Evento } from "@/lib/db/tipos";
 
 // Instanciado recién al enviar (no al importar el módulo), para que el build
@@ -93,6 +93,33 @@ export async function enviarMailConfirmacion(evento: Evento) {
       Después del partido te vamos a mandar un código de acceso para ver y
       comprar las fotos.</p>
       <p>¡Nos vemos en la cancha!</p>
+      `
+    ),
+  });
+}
+
+export async function enviarMailFotosListas(
+  evento: Evento,
+  codigo: string,
+  expiraEn: string
+) {
+  await clienteResend().emails.send({
+    from: FROM,
+    to: evento.contacto_email,
+    subject: `Ya están tus fotos — ${evento.equipo}`,
+    html: layout(
+      "Fotos listas",
+      `
+      <p>Hola ${evento.contacto_nombre},</p>
+      <p>Ya subimos las fotos de <strong>${evento.equipo}</strong>. Tu código
+      de acceso es:</p>
+      <p style="font-size:28px;font-weight:bold;letter-spacing:0.1em;color:#e8a13c;margin:16px 0;">
+        ${codigo}
+      </p>
+      <p>Precio del pack: <strong>${formatearPrecio(evento.precio_centavos)}</strong>.
+      El código vence el <strong>${formatearFecha(expiraEn)}</strong> — después
+      de esa fecha las fotos se eliminan, así que no lo dejes pasar.</p>
+      ${boton(`${BASE_URL}/galeria/${codigo}`, "Ver mis fotos")}
       `
     ),
   });
