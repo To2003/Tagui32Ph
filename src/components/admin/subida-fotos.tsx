@@ -35,6 +35,7 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
   const [mensaje, setMensaje] = useState("");
   const [progreso, setProgreso] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [resultado, setResultado] = useState<{ codigo: string; expiraEn: string } | null>(null);
 
   const puedeSubir = fotos.length > 0 && zip !== null && fase === "idle";
@@ -42,14 +43,36 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
   const subirPack = async () => {
     if (!zip) return;
     setError(null);
+    setAviso(null);
 
     try {
       // 1. Generar previews con marca de agua (secuencial, para no explotar memoria con muchas fotos a la vez).
+      //    Si una foto puntual no se puede decodificar (típico: .heic de iPhone, que
+      //    Chrome no sabe leer), la salteamos en vez de abortar todo el lote.
       setFase("generando");
       const previews: { blob: Blob; ancho: number; alto: number }[] = [];
+      const fallidas: string[] = [];
       for (let i = 0; i < fotos.length; i++) {
         setMensaje(`Generando previews... ${i + 1}/${fotos.length}`);
-        previews.push(await generarPreview(fotos[i]));
+        try {
+          previews.push(await generarPreview(fotos[i]));
+        } catch (err) {
+          console.error(`No se pudo procesar ${fotos[i].name}:`, err);
+          fallidas.push(fotos[i].name);
+        }
+      }
+
+      if (fallidas.length > 0) {
+        setAviso(
+          `No pudimos procesar ${fallidas.length} foto(s): ${fallidas.join(", ")}. ` +
+            `Si son .heic de iPhone, exportalas como .jpg y subilas de nuevo aparte.`
+        );
+      }
+
+      if (previews.length === 0) {
+        setError("Ninguna foto se pudo procesar. Revisá el formato de los archivos.");
+        setFase("idle");
+        return;
       }
 
       // 2. Pedir URLs firmadas para el ZIP y cada preview.
@@ -118,6 +141,7 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
         <p className="mt-1 text-sm text-muted-foreground">
           Vence el {formatearFecha(resultado.expiraEn)}. Ya le mandamos el mail al contacto.
         </p>
+        {aviso && <p className="mt-3 text-sm text-amber-500">{aviso}</p>}
       </div>
     );
   }
@@ -172,6 +196,7 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
           </div>
         )}
 
+        {aviso && <p className="text-sm text-amber-500">{aviso}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button

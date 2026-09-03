@@ -124,3 +124,20 @@ export async function enviarMailFotosListas(
     ),
   });
 }
+
+export async function enviarMailPagoConfirmado(evento: Evento, codigo: string) {
+  await clienteResend().emails.send({
+    from: FROM,
+    to: evento.contacto_email,
+    subject: `Pago confirmado — ${evento.equipo}`,
+    html: layout(
+      "Pago confirmado",
+      `
+      <p>Hola ${evento.contacto_nombre},</p>
+      <p>Recibimos tu pago del pack de <strong>${evento.equipo}</strong>. Ya
+      podés descargar todas las fotos en original desde la galería.</p>
+      ${boton(`${BASE_URL}/galeria/${codigo}`, "Descargar mis fotos")}
+      `
+    ),
+  });
+}

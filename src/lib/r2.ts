@@ -1,5 +1,5 @@
 import "server-only";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 function clienteR2() {
@@ -26,4 +26,14 @@ export async function crearUrlSubida(key: string, contentType: string) {
 
 export function urlPublicaPreview(key: string) {
   return `${process.env.R2_PUBLIC_URL}/${key}`;
+}
+
+// URL firmada de descarga (GET), válida 24 horas. El original nunca tiene
+// URL pública — esto se genera solo después de verificar pago + código vigente.
+export async function crearUrlDescarga(key: string) {
+  const comando = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET!,
+    Key: key,
+  });
+  return getSignedUrl(clienteR2(), comando, { expiresIn: 24 * 3600 });
 }

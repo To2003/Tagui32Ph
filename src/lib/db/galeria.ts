@@ -52,3 +52,22 @@ export async function obtenerGaleria(codigo: string) {
     codigoAcceso,
   };
 }
+
+// Para las pantallas de vuelta de Mercado Pago (éxito/error/pendiente), que
+// solo tienen el id del evento (external_reference) en la URL.
+export async function obtenerEventoYCodigoPorId(eventoId: string) {
+  const supabase = crearClienteAdmin();
+  const [{ data: evento }, { data: codigoAcceso }] = await Promise.all([
+    supabase.from("eventos").select("*").eq("id", eventoId).maybeSingle(),
+    supabase
+      .from("codigos_acceso")
+      .select("*")
+      .eq("evento_id", eventoId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (!evento) return null;
+  return { evento: evento as Evento, codigoAcceso: codigoAcceso as CodigoAcceso | null };
+}

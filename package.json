@@ -17,6 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.39.0",
+    "mercadopago": "^3.6.0",
     "next": "^15.5.25",
     "radix-ui": "^1.6.7",
     "react": "^18.3.1",

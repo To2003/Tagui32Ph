@@ -4,6 +4,7 @@ import { obtenerGaleria } from "@/lib/db/galeria";
 import { urlPublicaPreview } from "@/lib/r2";
 import { formatearFecha, formatearPrecio } from "@/lib/fecha";
 import { GaleriaGrid } from "@/components/galeria/galeria-grid";
+import { ComprarBoton } from "@/components/galeria/comprar-boton";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -64,13 +65,11 @@ export default async function GaleriaCodigoPage({
             {formatearPrecio(evento.precio_centavos)}
           </p>
           {yaPago ? (
-            <Button size="lg" disabled title="Disponible en la Fase 5">
-              Descargar todas
+            <Button asChild size="lg">
+              <a href={`/api/descarga/${codigo}`}>Descargar todas</a>
             </Button>
           ) : (
-            <Button size="lg" disabled title="Disponible en la Fase 5">
-              Comprar pack
-            </Button>
+            <ComprarBoton codigo={codigo} />
           )}
         </div>
       </div>
