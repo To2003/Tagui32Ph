@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ingresarCodigo } from "@/app/galeria/actions";
+import { ingresarCodigo } from "@/app/(sitio)/galeria/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

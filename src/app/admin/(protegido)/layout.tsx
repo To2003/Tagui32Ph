@@ -22,10 +22,23 @@ export default async function AdminProtegidoLayout({
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/60">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/admin/eventos" className="font-heading text-xl tracking-wide">
-            TAGUI<span className="text-primary">32</span>{" "}
-            <span className="text-sm text-muted-foreground">admin</span>
-          </Link>
+          <div className="flex items-center gap-8">
+            <Link href="/admin/eventos" className="font-heading text-xl tracking-wide">
+              TAGUI<span className="text-primary">32</span>{" "}
+              <span className="text-sm text-muted-foreground">admin</span>
+            </Link>
+            <nav className="hidden gap-6 text-sm text-muted-foreground sm:flex">
+              <Link href="/admin/eventos" className="hover:text-foreground">
+                Eventos
+              </Link>
+              <Link href="/admin/portfolio" className="hover:text-foreground">
+                Portfolio
+              </Link>
+              <Link href="/admin/config" className="hover:text-foreground">
+                Configuración
+              </Link>
+            </nav>
+          </div>
           <form action={cerrarSesion}>
             <Button type="submit" variant="ghost" size="sm">
               Cerrar sesión

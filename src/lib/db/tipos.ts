@@ -42,5 +42,16 @@ export type CodigoAcceso = {
   codigo: string;
   expira_en: string;
   usos: number;
+  aviso_vencimiento_enviado: boolean;
+  created_at: string;
+};
+
+export type FotoPortfolio = {
+  id: string;
+  imagen_key: string;
+  titulo: string | null;
+  deporte: string | null;
+  orden: number;
+  visible: boolean;
   created_at: string;
 };

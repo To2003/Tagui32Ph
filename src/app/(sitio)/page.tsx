@@ -3,23 +3,29 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { obtenerPrecioBaseCentavos } from "@/lib/db/configuracion";
 import { formatearPrecio } from "@/lib/fecha";
+import { crearClienteAdmin } from "@/lib/supabase/admin";
+import { urlPublicaPreview } from "@/lib/r2";
+import type { FotoPortfolio } from "@/lib/db/tipos";
 
-// El precio sale de la tabla `configuracion`; revalidamos cada 5 minutos
-// para que un cambio desde /admin/config no requiera redeploy.
+// El precio y el portfolio salen de la base; revalidamos cada 5 minutos para
+// que un cambio desde /admin no requiera redeploy.
 export const revalidate = 300;
 
-// Datos de ejemplo hardcodeados — en la Fase 6 esto sale de la tabla `portfolio`
-// y se administra desde /admin/portfolio.
-const portfolio = [
-  { id: 1, titulo: "Semifinal — Fútbol 5", deporte: "Fútbol", src: "https://picsum.photos/id/1011/900/1200" },
-  { id: 2, titulo: "Saque de esquina", deporte: "Fútbol", src: "https://picsum.photos/id/1015/900/700" },
-  { id: 3, titulo: "Rulo bajo los reflectores", deporte: "Fútbol", src: "https://picsum.photos/id/1016/900/1100" },
-  { id: 4, titulo: "Bloqueo en la red", deporte: "Vóley", src: "https://picsum.photos/id/1021/900/900" },
-  { id: 5, titulo: "Doble amague", deporte: "Básquet", src: "https://picsum.photos/id/1024/900/1300" },
-  { id: 6, titulo: "Festejo del equipo", deporte: "Fútbol", src: "https://picsum.photos/id/1035/900/1000" },
-  { id: 7, titulo: "Arquero volando", deporte: "Fútbol", src: "https://picsum.photos/id/1041/900/700" },
-  { id: 8, titulo: "Pique en la banda", deporte: "Rugby", src: "https://picsum.photos/id/1043/900/1200" },
-];
+async function obtenerPortfolio() {
+  const supabase = crearClienteAdmin();
+  const { data } = await supabase
+    .from("portfolio")
+    .select("*")
+    .eq("visible", true)
+    .order("orden", { ascending: true });
+
+  return ((data ?? []) as FotoPortfolio[]).map((f) => ({
+    id: f.id,
+    titulo: f.titulo ?? "",
+    deporte: f.deporte ?? "",
+    src: urlPublicaPreview(f.imagen_key),
+  }));
+}
 
 const pasos = [
   {
@@ -43,7 +49,10 @@ const pasos = [
 ];
 
 export default async function Home() {
-  const precioBaseCentavos = await obtenerPrecioBaseCentavos();
+  const [precioBaseCentavos, portfolio] = await Promise.all([
+    obtenerPrecioBaseCentavos(),
+    obtenerPortfolio(),
+  ]);
 
   return (
     <div className="flex flex-col">
@@ -104,42 +113,43 @@ export default async function Home() {
       </section>
 
       {/* Portfolio */}
-      <section className="border-b border-border/60">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="font-heading text-3xl tracking-wide text-foreground sm:text-4xl">
-              Algunas coberturas
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Fútbol, básquet, vóley, rugby y lo que se juegue.
-            </p>
-          </div>
-          <div className="mt-12 columns-2 gap-4 sm:columns-3">
-            {portfolio.map((foto) => (
-              <div
-                key={foto.id}
-                className="group relative mb-4 break-inside-avoid overflow-hidden"
-              >
-                <Image
-                  src={foto.src}
-                  alt={foto.titulo}
-                  width={900}
-                  height={1200}
-                  className="h-auto w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                />
-                <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="p-4">
-                    <p className="text-xs uppercase tracking-wider text-primary">
-                      {foto.deporte}
-                    </p>
-                    <p className="text-sm text-white">{foto.titulo}</p>
+      {portfolio.length > 0 && (
+        <section className="border-b border-border/60">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="font-heading text-3xl tracking-wide text-foreground sm:text-4xl">
+                Algunas coberturas
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Fútbol, básquet, vóley, rugby y lo que se juegue.
+              </p>
+            </div>
+            <div className="mt-12 columns-2 gap-4 sm:columns-3">
+              {portfolio.map((foto) => (
+                <div
+                  key={foto.id}
+                  className="group relative mb-4 break-inside-avoid overflow-hidden"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- ya viene redimensionada por el admin al subirla */}
+                  <img
+                    src={foto.src}
+                    alt={foto.titulo}
+                    className="h-auto w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                  />
+                  <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="p-4">
+                      <p className="text-xs uppercase tracking-wider text-primary">
+                        {foto.deporte}
+                      </p>
+                      <p className="text-sm text-white">{foto.titulo}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Precio + CTA final */}
       <section className="bg-background">

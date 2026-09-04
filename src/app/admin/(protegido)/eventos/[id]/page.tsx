@@ -8,8 +8,16 @@ import { Button } from "@/components/ui/button";
 import { EditarPrecio } from "@/components/admin/editar-precio";
 import { SubidaFotos } from "@/components/admin/subida-fotos";
 import { ReenviarMailBoton } from "@/components/admin/reenviar-mail-boton";
+import { ExtenderVencimientoBoton } from "@/components/admin/extender-vencimiento-boton";
 import { confirmarEvento, rechazarEvento } from "../actions";
 import type { Evento } from "@/lib/db/tipos";
+
+const ETIQUETAS_PAGO: Record<string, string> = {
+  approved: "Aprobado",
+  pending: "Pendiente",
+  rejected: "Rechazado",
+  refunded: "Reembolsado",
+};
 
 export const metadata: Metadata = {
   title: "Evento — Admin Tagui32",
@@ -44,9 +52,10 @@ export default async function EventoDetallePage({
 
   let cantidadFotos = 0;
   let codigoAcceso: { codigo: string; expira_en: string } | null = null;
+  let pago: { estado: string; monto_centavos: number; created_at: string } | null = null;
 
   if (yaTieneFotos) {
-    const [{ count }, { data: codigo }] = await Promise.all([
+    const [{ count }, { data: codigo }, { data: pagoData }] = await Promise.all([
       supabase.from("fotos").select("*", { count: "exact", head: true }).eq("evento_id", id),
       supabase
         .from("codigos_acceso")
@@ -55,9 +64,17 @@ export default async function EventoDetallePage({
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("pagos")
+        .select("estado, monto_centavos, created_at")
+        .eq("evento_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
     cantidadFotos = count ?? 0;
     codigoAcceso = codigo;
+    pago = pagoData;
   }
 
   return (
@@ -159,8 +176,16 @@ export default async function EventoDetallePage({
               <p className="text-sm text-muted-foreground">
                 Vence el {formatearFecha(codigoAcceso.expira_en)}
               </p>
-              <div className="mt-4">
+              {pago && (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Pago: {ETIQUETAS_PAGO[pago.estado] ?? pago.estado} —{" "}
+                  {formatearPrecio(pago.monto_centavos)} —{" "}
+                  {formatearFechaHora(pago.created_at)}
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
                 <ReenviarMailBoton eventoId={e.id} />
+                <ExtenderVencimientoBoton eventoId={e.id} />
               </div>
             </>
           )}

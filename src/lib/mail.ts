@@ -125,6 +125,24 @@ export async function enviarMailFotosListas(
   });
 }
 
+export async function enviarMailAvisoVencimiento(evento: Evento, codigo: string, expiraEn: string) {
+  await clienteResend().emails.send({
+    from: FROM,
+    to: evento.contacto_email,
+    subject: `Tu código vence pronto — ${evento.equipo}`,
+    html: layout(
+      "Aviso de vencimiento",
+      `
+      <p>Hola ${evento.contacto_nombre},</p>
+      <p>Todavía no compraste el pack de <strong>${evento.equipo}</strong> y tu
+      código vence el <strong>${formatearFecha(expiraEn)}</strong>. Después de
+      esa fecha las fotos se eliminan y no vas a poder acceder más.</p>
+      ${boton(`${BASE_URL}/galeria/${codigo}`, "Ver mis fotos")}
+      `
+    ),
+  });
+}
+
 export async function enviarMailPagoConfirmado(evento: Evento, codigo: string) {
   await clienteResend().emails.send({
     from: FROM,

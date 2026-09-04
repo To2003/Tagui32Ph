@@ -39,9 +39,30 @@ export default async function EventosPage({
 
   const { data: eventos } = await query;
 
+  const inicioDeMes = new Date();
+  inicioDeMes.setDate(1);
+  inicioDeMes.setHours(0, 0, 0, 0);
+  const { data: pagosDelMes } = await supabase
+    .from("pagos")
+    .select("monto_centavos")
+    .eq("estado", "approved")
+    .gte("created_at", inicioDeMes.toISOString());
+
+  const ingresosDelMes = (pagosDelMes ?? []).reduce((acc, p) => acc + p.monto_centavos, 0);
+
   return (
     <div>
       <h1 className="font-heading text-3xl tracking-wide">Eventos</h1>
+
+      <div className="mt-4 flex gap-6 text-sm text-muted-foreground">
+        <p>
+          <span className="text-foreground">{pagosDelMes?.length ?? 0}</span> packs vendidos este
+          mes
+        </p>
+        <p>
+          <span className="text-foreground">{formatearPrecio(ingresosDelMes)}</span> facturados
+        </p>
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {filtros.map((f) => (

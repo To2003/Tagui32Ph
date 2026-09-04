@@ -48,12 +48,13 @@ create table if not exists fotos (
 
 -- Código con el que el equipo entra a ver y comprar su pack.
 create table if not exists codigos_acceso (
-  id         uuid primary key default gen_random_uuid(),
-  evento_id  uuid not null references eventos(id) on delete cascade,
-  codigo     text not null unique,       -- 8 caracteres, alfabeto sin ambiguos
-  expira_en  timestamptz not null,       -- generación + 30 días
-  usos       int not null default 0,
-  created_at timestamptz not null default now()
+  id                          uuid primary key default gen_random_uuid(),
+  evento_id                   uuid not null references eventos(id) on delete cascade,
+  codigo                      text not null unique,       -- 8 caracteres, alfabeto sin ambiguos
+  expira_en                   timestamptz not null,       -- generación + 30 días (editable por el admin)
+  usos                        int not null default 0,
+  aviso_vencimiento_enviado   boolean not null default false,
+  created_at                  timestamptz not null default now()
 );
 
 -- Registro de pagos de Mercado Pago. Sirve de log y de defensa anti-duplicados.
@@ -141,5 +142,9 @@ alter table configuracion enable row level security;
 insert into configuracion (clave, valor) values
   ('precio_base_centavos', '1500000'),
   ('contacto_whatsapp', '5490000000000'),
-  ('contacto_email', 'hola@tagui32.com')
+  ('contacto_email', 'hola@tagui32.com'),
+  -- Cupón único simple: si "codigo_descuento" está vacío, no hay promo activa.
+  ('codigo_descuento', ''),
+  ('descuento_porcentaje', '0'),
+  ('terminos_texto', 'Términos y condiciones pendientes de redactar.')
 on conflict (clave) do nothing;

@@ -9,7 +9,7 @@ function cliente() {
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
 
-export async function crearPreferencia(evento: Evento) {
+export async function crearPreferencia(evento: Evento, precioFinalCentavos: number) {
   const preference = new Preference(cliente());
 
   const resultado = await preference.create({
@@ -19,11 +19,15 @@ export async function crearPreferencia(evento: Evento) {
           id: evento.id,
           title: `Pack de fotos — ${evento.equipo} — ${formatearFecha(evento.fecha_partido)}`,
           quantity: 1,
-          unit_price: evento.precio_centavos / 100,
+          unit_price: precioFinalCentavos / 100,
           currency_id: "ARS",
         },
       ],
       external_reference: evento.id,
+      // El monto realmente cobrado queda acá, dentro del pago que devuelve
+      // la API de MP — así el webhook valida contra esto (con cupón aplicado)
+      // en vez de asumir siempre el precio de lista del evento.
+      metadata: { precio_centavos_cobrado: precioFinalCentavos },
       notification_url: `${BASE_URL}/api/pagos/webhook`,
       back_urls: {
         success: `${BASE_URL}/galeria/exito`,

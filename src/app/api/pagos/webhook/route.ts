@@ -75,7 +75,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No se pudo registrar el pago" }, { status: 500 });
   }
 
-  const montoEsperado = (evento as Evento).precio_centavos;
+  // El monto esperado es el que quedó guardado en el metadata de la preferencia
+  // (contempla el cupón de descuento si se usó). Si no hay metadata, caemos
+  // al precio de lista del evento — cubre preferencias viejas sin este campo.
+  const metadata = payment.metadata as Record<string, unknown> | undefined;
+  const montoEsperado = metadata?.precio_centavos_cobrado
+    ? Number(metadata.precio_centavos_cobrado)
+    : (evento as Evento).precio_centavos;
   const montoValido = montoCentavos === montoEsperado;
 
   if (estadoPago === "approved" && montoValido) {

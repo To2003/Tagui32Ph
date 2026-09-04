@@ -125,3 +125,40 @@ export async function reenviarMailFotos(eventoId: string) {
     return { error: "No se pudo reenviar el mail." };
   }
 }
+
+export async function extenderVencimiento(eventoId: string, dias: number) {
+  const supabase = crearClienteAdmin();
+
+  const { data: codigoAcceso } = await supabase
+    .from("codigos_acceso")
+    .select("*")
+    .eq("evento_id", eventoId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!codigoAcceso) return { error: "No encontramos el código de este evento." };
+
+  const nuevaFecha = new Date(
+    new Date(codigoAcceso.expira_en).getTime() + dias * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { error: errorExtender } = await supabase
+    .from("codigos_acceso")
+    .update({ expira_en: nuevaFecha, aviso_vencimiento_enviado: false })
+    .eq("id", codigoAcceso.id);
+
+  if (errorExtender) {
+    console.error("Error al extender vencimiento:", errorExtender);
+    return { error: "No se pudo extender el vencimiento." };
+  }
+
+  // Si se había marcado vencido, lo reabrimos.
+  await supabase
+    .from("eventos")
+    .update({ estado: "fotos_subidas" })
+    .eq("id", eventoId)
+    .eq("estado", "vencido");
+
+  revalidatePath(`/admin/eventos/${eventoId}`);
+}
