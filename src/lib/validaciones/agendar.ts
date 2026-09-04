@@ -1,14 +1,5 @@
 import { z } from "zod";
 
-export const deportes = [
-  "Fútbol",
-  "Básquet",
-  "Vóley",
-  "Rugby",
-  "Hockey",
-  "Otro",
-] as const;
-
 export const solicitudSchema = z.object({
   deporte: z.string().min(1, "Elegí un deporte"),
   equipo: z

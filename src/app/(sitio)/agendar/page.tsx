@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { AgendarForm } from "@/components/agendar-form";
+import { obtenerDeportesDisponibles } from "@/lib/db/configuracion";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Agendá tu cobertura — Tagui32",
   description: "Contanos de tu partido y te confirmamos la cobertura fotográfica.",
 };
 
-export default function AgendarPage() {
+export default async function AgendarPage() {
+  const deportes = await obtenerDeportesDisponibles();
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
       <p className="text-sm uppercase tracking-[0.3em] text-primary">
@@ -22,7 +27,7 @@ export default function AgendarPage() {
       </p>
 
       <div className="mt-12">
-        <AgendarForm />
+        <AgendarForm deportes={deportes} />
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { validarCodigo } from "@/lib/db/galeria";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearPreferencia } from "@/lib/mercadopago";
-import { obtenerConfiguracion } from "@/lib/db/configuracion";
+import { validarCuponDescuento } from "@/lib/db/configuracion";
 import { enviarMailPagoConfirmado } from "@/lib/mail";
 import type { Evento } from "@/lib/db/tipos";
 
@@ -78,18 +78,13 @@ export async function POST(request: Request) {
   let precioFinalCentavos = (evento as Evento).precio_centavos;
 
   if (cupon) {
-    const [codigoDescuento, descuentoPorcentaje] = await Promise.all([
-      obtenerConfiguracion("codigo_descuento"),
-      obtenerConfiguracion("descuento_porcentaje"),
-    ]);
-
-    if (!codigoDescuento || cupon !== codigoDescuento.toUpperCase()) {
+    const resultadoCupon = await validarCuponDescuento(cupon);
+    if (!resultadoCupon.valido) {
       return NextResponse.json({ error: "Ese cupón no es válido." }, { status: 400 });
     }
 
-    const porcentaje = parseInt(descuentoPorcentaje ?? "0", 10);
     precioFinalCentavos = Math.round(
-      (evento as Evento).precio_centavos * (1 - porcentaje / 100)
+      (evento as Evento).precio_centavos * (1 - resultadoCupon.porcentaje / 100)
     );
   }
 

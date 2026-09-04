@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   solicitudSchema,
-  deportes,
   type SolicitudInput,
   type SolicitudOutput,
 } from "@/lib/validaciones/agendar";
@@ -41,7 +40,7 @@ function Campo({
   );
 }
 
-export function AgendarForm() {
+export function AgendarForm({ deportes }: { deportes: string[] }) {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const {
     register,

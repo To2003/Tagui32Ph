@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { obtenerConfiguracionCompleta } from "@/lib/db/configuracion";
-import { guardarConfig } from "./actions";
+import { guardarConfig, crearCupon, alternarCupon, eliminarCupon } from "./actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Configuración — Admin Tagui32",
@@ -17,6 +19,8 @@ export default async function ConfigPage({
 }) {
   const { guardado } = await searchParams;
   const config = await obtenerConfiguracionCompleta();
+  const hayCupon = config.codigo_descuento.length > 0;
+  const cuponActivo = config.descuento_activo === "true";
 
   return (
     <div className="max-w-2xl">
@@ -34,15 +38,54 @@ export default async function ConfigPage({
       <form action={guardarConfig} className="mt-8 flex flex-col gap-8">
         <div className="flex flex-col gap-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">General</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="precioBase">Precio base del pack ($)</Label>
+              <Input
+                id="precioBase"
+                name="precioBase"
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={Number(config.precio_base_centavos) / 100}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="horasIncluidas">Horas incluidas</Label>
+              <Input
+                id="horasIncluidas"
+                name="horasIncluidas"
+                type="number"
+                min="0.5"
+                step="0.5"
+                defaultValue={config.horas_incluidas}
+              />
+            </div>
+          </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="precioBase">Precio base del pack ($)</Label>
+            <Label htmlFor="precioPorHora">Precio por hora extra ($)</Label>
+            <p className="text-sm text-muted-foreground">
+              Se cobra proporcional por lo que pase de las horas incluidas.
+            </p>
             <Input
-              id="precioBase"
-              name="precioBase"
+              id="precioPorHora"
+              name="precioPorHora"
               type="number"
               min="0"
               step="1"
-              defaultValue={Number(config.precio_base_centavos) / 100}
+              defaultValue={Number(config.precio_por_hora_centavos) / 100}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="deportesDisponibles">Deportes disponibles</Label>
+            <p className="text-sm text-muted-foreground">
+              Separados por coma. Así aparecen en el formulario de /agendar.
+            </p>
+            <Input
+              id="deportesDisponibles"
+              name="deportesDisponibles"
+              defaultValue={config.deportes_disponibles}
+              placeholder="Fútbol, Básquet, Vóley"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -65,38 +108,6 @@ export default async function ConfigPage({
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-border/60 pt-6">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Cupón de descuento
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Un solo código activo a la vez. Dejalo vacío para desactivar el descuento.
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="codigoDescuento">Código</Label>
-              <Input
-                id="codigoDescuento"
-                name="codigoDescuento"
-                defaultValue={config.codigo_descuento}
-                placeholder="BIENVENIDA10"
-                className="uppercase"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="descuentoPorcentaje">Descuento (%)</Label>
-              <Input
-                id="descuentoPorcentaje"
-                name="descuentoPorcentaje"
-                type="number"
-                min="0"
-                max="100"
-                defaultValue={config.descuento_porcentaje}
-              />
-            </div>
-          </div>
-        </div>
-
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-6">
           <Label htmlFor="terminosTexto">Términos y condiciones</Label>
           <p className="mb-1 text-sm text-muted-foreground">
@@ -114,6 +125,63 @@ export default async function ConfigPage({
           Guardar
         </Button>
       </form>
+
+      <div className="mt-8 flex flex-col gap-4 border-t border-border/60 pt-6">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">Cupón de descuento</p>
+        <p className="text-sm text-muted-foreground">Un solo código a la vez.</p>
+
+        {hayCupon ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge
+              className={cn(
+                "border-0 px-3 py-1 text-sm",
+                cuponActivo ? "bg-emerald-500/15 text-emerald-400" : "bg-neutral-500/15 text-neutral-400"
+              )}
+            >
+              {config.codigo_descuento} — {config.descuento_porcentaje}% off
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {cuponActivo ? "Activo" : "Inactivo"}
+            </span>
+            <form action={alternarCupon.bind(null, !cuponActivo)}>
+              <Button type="submit" variant="outline" size="sm">
+                {cuponActivo ? "Desactivar" : "Activar"}
+              </Button>
+            </form>
+            <form action={eliminarCupon}>
+              <Button type="submit" variant="ghost" size="sm" className="text-destructive">
+                Eliminar
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <form action={crearCupon} className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="codigoDescuento">Código</Label>
+              <Input
+                id="codigoDescuento"
+                name="codigoDescuento"
+                placeholder="BIENVENIDA10"
+                className="uppercase"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="descuentoPorcentaje">Descuento (%)</Label>
+              <Input
+                id="descuentoPorcentaje"
+                name="descuentoPorcentaje"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="10"
+              />
+            </div>
+            <Button type="submit" className="col-span-2 self-start">
+              Crear cupón
+            </Button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

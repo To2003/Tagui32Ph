@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
-import { obtenerPrecioBaseCentavos } from "@/lib/db/configuracion";
+import { calcularPrecioCentavos } from "@/lib/db/configuracion";
 import { solicitudSchema, type SolicitudOutput } from "@/lib/validaciones/agendar";
 import { combinarFechaHoraArgentina } from "@/lib/fecha";
 import { enviarMailNuevaSolicitud, enviarMailSolicitudRecibida } from "@/lib/mail";
@@ -15,7 +15,7 @@ export async function crearSolicitud(input: SolicitudOutput) {
   }
   const datos = parsed.data;
 
-  const precioCentavos = await obtenerPrecioBaseCentavos();
+  const precioCentavos = await calcularPrecioCentavos(datos.duracionHoras);
   const supabase = crearClienteAdmin();
 
   const { data: evento, error } = await supabase

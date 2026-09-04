@@ -140,11 +140,19 @@ alter table configuracion enable row level security;
 -- ============================================================================
 
 insert into configuracion (clave, valor) values
+  -- precio_base_centavos cubre hasta horas_incluidas; lo que pasa de ahí se
+  -- cobra a precio_por_hora_centavos (proporcional, no por hora completa).
   ('precio_base_centavos', '1500000'),
+  ('precio_por_hora_centavos', '500000'),
+  ('horas_incluidas', '1'),
   ('contacto_whatsapp', '5490000000000'),
   ('contacto_email', 'hola@tagui32.com'),
-  -- Cupón único simple: si "codigo_descuento" está vacío, no hay promo activa.
+  -- Lista separada por comas, editable desde /admin/config.
+  ('deportes_disponibles', 'Fútbol, Básquet, Vóley, Rugby, Hockey, Otro'),
+  -- Cupón único simple: el código puede quedar guardado y solo "apagado"
+  -- con descuento_activo, sin perder el % al reactivarlo.
   ('codigo_descuento', ''),
   ('descuento_porcentaje', '0'),
+  ('descuento_activo', 'false'),
   ('terminos_texto', 'Términos y condiciones pendientes de redactar.')
 on conflict (clave) do nothing;

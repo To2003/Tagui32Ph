@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { obtenerPrecioBaseCentavos } from "@/lib/db/configuracion";
+import { obtenerConfiguracionCompleta } from "@/lib/db/configuracion";
 import { formatearPrecio } from "@/lib/fecha";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { urlPublicaPreview } from "@/lib/r2";
@@ -49,10 +49,13 @@ const pasos = [
 ];
 
 export default async function Home() {
-  const [precioBaseCentavos, portfolio] = await Promise.all([
-    obtenerPrecioBaseCentavos(),
+  const [config, portfolio] = await Promise.all([
+    obtenerConfiguracionCompleta(),
     obtenerPortfolio(),
   ]);
+  const precioBaseCentavos = Number(config.precio_base_centavos);
+  const precioPorHoraCentavos = Number(config.precio_por_hora_centavos);
+  const horasIncluidas = config.horas_incluidas;
 
   return (
     <div className="flex flex-col">
@@ -164,6 +167,10 @@ export default async function Home() {
             Un solo pago por todo el equipo, después del partido y con las fotos
             ya editadas. Sin seña, sin sorpresas. El responsable del equipo se
             organiza con el resto para juntar la plata.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Incluye {horasIncluidas} {Number(horasIncluidas) === 1 ? "hora" : "horas"} de
+            cobertura — cada hora extra, {formatearPrecio(precioPorHoraCentavos)} más.
           </p>
           <Button asChild size="lg" className="mt-2 text-base">
             <Link href="/agendar">Quiero agendar mi partido</Link>
