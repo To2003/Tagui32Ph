@@ -69,7 +69,7 @@ export default async function GaleriaCodigoPage({
               <a href={`/api/descarga/${codigo}`}>Descargar todas</a>
             </Button>
           ) : (
-            <ComprarBoton codigo={codigo} />
+            <ComprarBoton codigo={codigo} precioCentavos={evento.precio_centavos} />
           )}
         </div>
       </div>
