@@ -1,9 +1,48 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { validarCodigo } from "@/lib/db/galeria";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearPreferencia } from "@/lib/mercadopago";
 import { obtenerConfiguracion } from "@/lib/db/configuracion";
+import { enviarMailPagoConfirmado } from "@/lib/mail";
 import type { Evento } from "@/lib/db/tipos";
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
+
+// Cupón del 100%: no hay nada que cobrarle a Mercado Pago (de hecho su API
+// rechaza una preferencia con unit_price 0). Habilitamos directo, con el
+// mismo patrón de update condicional que usa el webhook para no duplicar
+// el mail si por algún motivo se llama dos veces.
+async function canjearCuponGratis(evento: Evento, codigo: string) {
+  const supabase = crearClienteAdmin();
+
+  const { data: eventoActualizado } = await supabase
+    .from("eventos")
+    .update({ estado: "pagado" })
+    .eq("id", evento.id)
+    .neq("estado", "pagado")
+    .select()
+    .maybeSingle();
+
+  if (eventoActualizado) {
+    await supabase.from("pagos").insert({
+      evento_id: evento.id,
+      mp_payment_id: `cupon-${evento.id}`,
+      monto_centavos: 0,
+      estado: "approved",
+      payload: { motivo: "cupon_100_por_ciento" },
+    });
+
+    after(async () => {
+      try {
+        await enviarMailPagoConfirmado(eventoActualizado as Evento, codigo);
+      } catch (err) {
+        console.error("Error al mandar el mail de canje con cupón:", err);
+      }
+    });
+  }
+
+  return `${BASE_URL}/galeria/exito?external_reference=${evento.id}`;
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -52,6 +91,11 @@ export async function POST(request: Request) {
     precioFinalCentavos = Math.round(
       (evento as Evento).precio_centavos * (1 - porcentaje / 100)
     );
+  }
+
+  if (precioFinalCentavos <= 0) {
+    const url = await canjearCuponGratis(evento as Evento, codigo);
+    return NextResponse.json({ url });
   }
 
   try {
