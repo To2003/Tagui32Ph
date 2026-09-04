@@ -12,6 +12,13 @@ export type Configuracion = {
   descuento_activo: string;
   deportes_disponibles: string;
   terminos_texto: string;
+  sobre_mi_foto_key: string;
+  sobre_mi_bio: string;
+  sobre_mi_hobbies: string;
+  sobre_mi_camara_key: string;
+  sobre_mi_camara_texto: string;
+  sobre_mi_programador_texto: string;
+  sobre_mi_programador_link: string;
 };
 
 const VALORES_POR_DEFECTO: Configuracion = {
@@ -25,6 +32,13 @@ const VALORES_POR_DEFECTO: Configuracion = {
   descuento_activo: "false",
   deportes_disponibles: "Fútbol, Básquet, Vóley, Rugby, Hockey, Otro",
   terminos_texto: "Términos y condiciones pendientes de redactar.",
+  sobre_mi_foto_key: "",
+  sobre_mi_bio: "",
+  sobre_mi_hobbies: "",
+  sobre_mi_camara_key: "",
+  sobre_mi_camara_texto: "",
+  sobre_mi_programador_texto: "",
+  sobre_mi_programador_link: "",
 };
 
 export async function obtenerConfiguracion(clave: string) {

@@ -18,6 +18,7 @@ const navItems = [
   { href: "/", label: "Inicio" },
   { href: "/agendar", label: "Agendar" },
   { href: "/galeria", label: "Galería" },
+  { href: "/sobre-mi", label: "Sobre mí" },
 ];
 
 export function SiteHeader() {

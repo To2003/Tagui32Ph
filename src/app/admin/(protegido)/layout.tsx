@@ -34,6 +34,9 @@ export default async function AdminProtegidoLayout({
               <Link href="/admin/portfolio" className="hover:text-foreground">
                 Portfolio
               </Link>
+              <Link href="/admin/sobre-mi" className="hover:text-foreground">
+                Sobre mí
+              </Link>
               <Link href="/admin/config" className="hover:text-foreground">
                 Configuración
               </Link>

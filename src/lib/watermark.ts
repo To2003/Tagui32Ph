@@ -61,8 +61,8 @@ export function generarPreview(archivo: File) {
   return redimensionar(archivo, 1200, true);
 }
 
-// Foto de portfolio para la home — sin marca de agua, un poco más grande
-// porque se muestra a tamaño completo, no en miniatura.
-export function generarImagenPortfolio(archivo: File) {
+// Cualquier imagen que se muestra a tamaño completo sin marca de agua
+// (portfolio, fotos de "Sobre mí") — 1600px de ancho.
+export function generarImagenSinMarca(archivo: File) {
   return redimensionar(archivo, 1600, false);
 }

@@ -154,5 +154,14 @@ insert into configuracion (clave, valor) values
   ('codigo_descuento', ''),
   ('descuento_porcentaje', '0'),
   ('descuento_activo', 'false'),
-  ('terminos_texto', 'Términos y condiciones pendientes de redactar.')
+  ('terminos_texto', 'Términos y condiciones pendientes de redactar.'),
+  -- Página /sobre-mi, editable desde /admin/sobre-mi. Las *_key son claves
+  -- de imágenes en R2 (mismo bucket que portfolio, sin marca de agua).
+  ('sobre_mi_foto_key', ''),
+  ('sobre_mi_bio', ''),
+  ('sobre_mi_hobbies', ''),
+  ('sobre_mi_camara_key', ''),
+  ('sobre_mi_camara_texto', ''),
+  ('sobre_mi_programador_texto', ''),
+  ('sobre_mi_programador_link', '')
 on conflict (clave) do nothing;

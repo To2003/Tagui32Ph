@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { generarImagenPortfolio } from "@/lib/watermark";
+import { generarImagenSinMarca } from "@/lib/watermark";
 import { subirArchivo } from "@/lib/subida-cliente";
 import {
   crearUrlSubidaPortfolio,
@@ -23,7 +23,7 @@ export function SubidaPortfolio() {
     setCargando(true);
     setError(null);
     try {
-      const { blob, ancho, alto } = await generarImagenPortfolio(archivo);
+      const { blob, ancho, alto } = await generarImagenSinMarca(archivo);
       const { key, url } = await crearUrlSubidaPortfolio("image/jpeg");
       await subirArchivo(url, blob, "image/jpeg", () => {});
       const res = await guardarFotoPortfolio({ key, titulo, deporte, ancho, alto });
