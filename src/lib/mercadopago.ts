@@ -2,15 +2,15 @@ import "server-only";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import type { Evento } from "@/lib/db/tipos";
 import { formatearFecha } from "@/lib/fecha";
+import { obtenerBaseUrl } from "@/lib/base-url";
 
 function cliente() {
   return new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
-
 export async function crearPreferencia(evento: Evento, precioFinalCentavos: number) {
   const preference = new Preference(cliente());
+  const baseUrl = obtenerBaseUrl();
 
   const resultado = await preference.create({
     body: {
@@ -28,11 +28,11 @@ export async function crearPreferencia(evento: Evento, precioFinalCentavos: numb
       // la API de MP — así el webhook valida contra esto (con cupón aplicado)
       // en vez de asumir siempre el precio de lista del evento.
       metadata: { precio_centavos_cobrado: precioFinalCentavos },
-      notification_url: `${BASE_URL}/api/pagos/webhook`,
+      notification_url: `${baseUrl}/api/pagos/webhook`,
       back_urls: {
-        success: `${BASE_URL}/galeria/exito`,
-        failure: `${BASE_URL}/galeria/error`,
-        pending: `${BASE_URL}/galeria/pendiente`,
+        success: `${baseUrl}/galeria/exito`,
+        failure: `${baseUrl}/galeria/error`,
+        pending: `${baseUrl}/galeria/pendiente`,
       },
       auto_return: "approved",
     },

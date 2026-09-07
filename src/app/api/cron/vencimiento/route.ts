@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { enviarMailAvisoVencimiento } from "@/lib/mail";
+import { limpiarIntentosViejos } from "@/lib/rate-limit";
 import type { Evento } from "@/lib/db/tipos";
 
 const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
@@ -63,6 +64,9 @@ export async function GET(request: Request) {
       console.error(`No se pudo mandar aviso de vencimiento (${c.codigo}):`, err);
     }
   }
+
+  // 3. Limpiar intentos de rate-limit de más de 7 días.
+  await limpiarIntentosViejos();
 
   return NextResponse.json({ ok: true, vencidos, avisos });
 }

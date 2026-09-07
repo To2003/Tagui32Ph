@@ -31,6 +31,7 @@ create table if not exists eventos (
   precio_centavos     int not null,      -- se precarga con el precio base, editable
   zip_key             text,              -- clave del ZIP de originales en R2
   zip_bytes           bigint,
+  notificado_admin    boolean not null default false, -- si ya se avisó por mail (resumen cada 30 min)
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
@@ -88,6 +89,15 @@ create table if not exists configuracion (
   valor  text not null
 );
 
+-- Rate limiting de /agendar por IP. La IP se guarda hasheada (nunca en
+-- texto plano). Se limpian solos los registros de más de 7 días desde el
+-- cron diario.
+create table if not exists intentos_solicitud (
+  id         uuid primary key default gen_random_uuid(),
+  ip_hash    text not null,
+  created_at timestamptz not null default now()
+);
+
 -- ============================================================================
 -- ÍNDICES
 -- ============================================================================
@@ -98,6 +108,7 @@ create index if not exists idx_codigos_acceso_expira_en on codigos_acceso(expira
 create index if not exists idx_pagos_evento_id on pagos(evento_id);
 create index if not exists idx_eventos_estado on eventos(estado);
 create index if not exists idx_portfolio_orden on portfolio(orden);
+create index if not exists idx_intentos_solicitud_ip_hash on intentos_solicitud(ip_hash, created_at desc);
 
 -- ============================================================================
 -- updated_at automático en eventos
@@ -134,6 +145,7 @@ alter table codigos_acceso enable row level security;
 alter table pagos enable row level security;
 alter table portfolio enable row level security;
 alter table configuracion enable row level security;
+alter table intentos_solicitud enable row level security;
 
 -- ============================================================================
 -- CONFIGURACIÓN INICIAL
@@ -163,5 +175,8 @@ insert into configuracion (clave, valor) values
   ('sobre_mi_camara_key', ''),
   ('sobre_mi_camara_texto', ''),
   ('sobre_mi_programador_texto', ''),
-  ('sobre_mi_programador_link', '')
+  ('sobre_mi_programador_link', ''),
+  -- Freno de mano: si /agendar recibe más de 50 solicitudes en 24hs se pone
+  -- en 'true' solo, y solo vos lo volvés a poner en 'false' desde /admin/config.
+  ('formulario_pausado', 'false')
 on conflict (clave) do nothing;

@@ -1,4 +1,4 @@
-const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
+export const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
 
 export function formatearFechaHora(fechaIso: string) {
   return new Intl.DateTimeFormat("es-AR", {

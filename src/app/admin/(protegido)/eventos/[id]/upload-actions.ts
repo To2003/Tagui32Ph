@@ -2,32 +2,67 @@
 
 import { revalidatePath } from "next/cache";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
-import { crearUrlSubida } from "@/lib/r2";
+import {
+  crearUrlSubida,
+  iniciarMultipart,
+  firmarPartesMultipart,
+  completarMultipart,
+  abortarMultipart,
+  TAMANO_PARTE_MULTIPART,
+  UMBRAL_MULTIPART,
+} from "@/lib/r2";
 import { generarCodigo } from "@/lib/codigo";
 import { enviarMailFotosListas } from "@/lib/mail";
 import type { Evento } from "@/lib/db/tipos";
 
 const TREINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
 
-export async function crearUrlsDeSubida(
+export async function crearUrlsDePreviews(eventoId: string, cantidadFotos: number) {
+  return Promise.all(
+    Array.from({ length: cantidadFotos }, async () => {
+      const key = `eventos/${eventoId}/previews/${crypto.randomUUID()}.jpg`;
+      const url = await crearUrlSubida(key, "image/jpeg");
+      return { key, url };
+    })
+  );
+}
+
+// El ZIP de originales puede pesar cientos de MB o varios GB — un PUT simple
+// se corta en conexiones lentas. Arriba del umbral usamos multipart; abajo,
+// un PUT simple (con reintento del lado del cliente) alcanza y sobra.
+export async function iniciarSubidaZip(
   eventoId: string,
-  cantidadFotos: number,
-  zipContentType: string
+  contentType: string,
+  tamanoBytes: number
 ) {
-  const zipKey = `eventos/${eventoId}/originales.zip`;
+  const key = `eventos/${eventoId}/originales.zip`;
 
-  const [zipUrl, previews] = await Promise.all([
-    crearUrlSubida(zipKey, zipContentType || "application/zip"),
-    Promise.all(
-      Array.from({ length: cantidadFotos }, async () => {
-        const key = `eventos/${eventoId}/previews/${crypto.randomUUID()}.jpg`;
-        const url = await crearUrlSubida(key, "image/jpeg");
-        return { key, url };
-      })
-    ),
-  ]);
+  if (tamanoBytes < UMBRAL_MULTIPART) {
+    const url = await crearUrlSubida(key, contentType || "application/zip");
+    return { modo: "simple" as const, key, url };
+  }
 
-  return { zip: { key: zipKey, url: zipUrl }, previews };
+  const uploadId = await iniciarMultipart(key, contentType || "application/zip");
+  const cantidadPartes = Math.ceil(tamanoBytes / TAMANO_PARTE_MULTIPART);
+  const partes = await firmarPartesMultipart(key, uploadId, cantidadPartes);
+
+  return { modo: "multipart" as const, key, uploadId, partes };
+}
+
+export async function completarSubidaZipMultipart(
+  key: string,
+  uploadId: string,
+  partes: { numeroParte: number; etag: string }[]
+) {
+  await completarMultipart(key, uploadId, partes);
+}
+
+export async function abortarSubidaZipMultipart(key: string, uploadId: string) {
+  await abortarMultipart(key, uploadId).catch((err) => {
+    // No es crítico — a lo sumo quedan partes huérfanas que R2 puede limpiar
+    // solo con una regla de lifecycle. No vale la pena romper la UI por esto.
+    console.error("Error al abortar multipart:", err);
+  });
 }
 
 async function crearCodigoAcceso(

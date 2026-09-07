@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bebas_Neue, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { obtenerBaseUrl } from "@/lib/base-url";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -11,13 +12,12 @@ const bebasNeue = Bebas_Neue({
   variable: "--font-heading",
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 const TITULO = "Tagui32 — Fotografía deportiva";
 const DESCRIPCION =
   "Cobertura fotográfica de partidos amateur. Sacamos las fotos, vos elegís el pack, tu equipo se las lleva.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
+  metadataBase: new URL(obtenerBaseUrl()),
   title: TITULO,
   description: DESCRIPCION,
   openGraph: {

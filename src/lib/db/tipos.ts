@@ -22,6 +22,7 @@ export type Evento = {
   precio_centavos: number;
   zip_key: string | null;
   zip_bytes: number | null;
+  notificado_admin: boolean;
   created_at: string;
   updated_at: string;
 };

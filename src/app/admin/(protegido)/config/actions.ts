@@ -68,3 +68,9 @@ export async function eliminarCupon() {
   });
   revalidatePath("/admin/config");
 }
+
+export async function alternarFormularioPausado(pausado: boolean) {
+  await guardarConfiguracion({ formulario_pausado: String(pausado) });
+  revalidatePath("/admin/config");
+  revalidatePath("/agendar");
+}

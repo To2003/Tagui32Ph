@@ -19,6 +19,9 @@ export type Configuracion = {
   sobre_mi_camara_texto: string;
   sobre_mi_programador_texto: string;
   sobre_mi_programador_link: string;
+  formulario_pausado: string;
+  mails_contador_fecha: string;
+  mails_enviados_hoy: string;
 };
 
 const VALORES_POR_DEFECTO: Configuracion = {
@@ -39,6 +42,9 @@ const VALORES_POR_DEFECTO: Configuracion = {
   sobre_mi_camara_texto: "",
   sobre_mi_programador_texto: "",
   sobre_mi_programador_link: "",
+  formulario_pausado: "false",
+  mails_contador_fecha: "",
+  mails_enviados_hoy: "0",
 };
 
 export async function obtenerConfiguracion(clave: string) {

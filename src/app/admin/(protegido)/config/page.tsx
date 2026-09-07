@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { obtenerConfiguracionCompleta } from "@/lib/db/configuracion";
-import { guardarConfig, crearCupon, alternarCupon, eliminarCupon } from "./actions";
+import {
+  guardarConfig,
+  crearCupon,
+  alternarCupon,
+  eliminarCupon,
+  alternarFormularioPausado,
+} from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +27,7 @@ export default async function ConfigPage({
   const config = await obtenerConfiguracionCompleta();
   const hayCupon = config.codigo_descuento.length > 0;
   const cuponActivo = config.descuento_activo === "true";
+  const formularioPausado = config.formulario_pausado === "true";
 
   return (
     <div className="max-w-2xl">
@@ -33,6 +40,21 @@ export default async function ConfigPage({
         <p className="mt-4 rounded-md bg-emerald-500/15 px-4 py-2 text-sm text-emerald-400">
           Guardado.
         </p>
+      )}
+
+      {formularioPausado && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+          <p className="text-sm text-foreground">
+            <strong>El formulario de /agendar está pausado</strong> — se pausó
+            solo porque llegaron muchas solicitudes en las últimas 24hs. Nadie
+            puede agendar hasta que lo reactives.
+          </p>
+          <form action={alternarFormularioPausado.bind(null, false)}>
+            <Button type="submit" size="sm">
+              Reactivar formulario
+            </Button>
+          </form>
+        </div>
       )}
 
       <form action={guardarConfig} className="mt-8 flex flex-col gap-8">

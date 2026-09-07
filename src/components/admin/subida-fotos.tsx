@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { generarPreview } from "@/lib/watermark";
-import { subirArchivo } from "@/lib/subida-cliente";
-import { crearUrlsDeSubida, finalizarCargaFotos } from "@/app/admin/(protegido)/eventos/[id]/upload-actions";
+import { subirArchivo, conConcurrenciaLimitada } from "@/lib/subida-cliente";
+import { subirZip } from "@/lib/subida-multipart";
+import {
+  crearUrlsDePreviews,
+  finalizarCargaFotos,
+} from "@/app/admin/(protegido)/eventos/[id]/upload-actions";
 import { formatearFecha } from "@/lib/fecha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,19 +15,8 @@ import { Label } from "@/components/ui/label";
 
 const CONCURRENCIA_SUBIDA = 4;
 
-async function conConcurrenciaLimitada<T>(
-  items: T[],
-  limite: number,
-  trabajo: (item: T, indice: number) => Promise<void>
-) {
-  let cursor = 0;
-  async function siguiente(): Promise<void> {
-    const indice = cursor++;
-    if (indice >= items.length) return;
-    await trabajo(items[indice], indice);
-    return siguiente();
-  }
-  await Promise.all(Array.from({ length: Math.min(limite, items.length) }, siguiente));
+function aMB(bytes: number) {
+  return (bytes / 1024 / 1024).toFixed(1);
 }
 
 type Fase = "idle" | "generando" | "subiendo" | "listo";
@@ -33,17 +26,24 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
   const [zip, setZip] = useState<File | null>(null);
   const [fase, setFase] = useState<Fase>("idle");
   const [mensaje, setMensaje] = useState("");
-  const [progreso, setProgreso] = useState(0);
+  const [progresoBytes, setProgresoBytes] = useState({ subido: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [resultado, setResultado] = useState<{ codigo: string; expiraEn: string } | null>(null);
+  const controladorRef = useRef<AbortController | null>(null);
 
   const puedeSubir = fotos.length > 0 && zip !== null && fase === "idle";
+
+  const cancelar = () => {
+    controladorRef.current?.abort();
+  };
 
   const subirPack = async () => {
     if (!zip) return;
     setError(null);
     setAviso(null);
+    const controlador = new AbortController();
+    controladorRef.current = controlador;
 
     try {
       // 1. Generar previews con marca de agua (secuencial, para no explotar memoria con muchas fotos a la vez).
@@ -75,30 +75,56 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
         return;
       }
 
-      // 2. Pedir URLs firmadas para el ZIP y cada preview.
+      // 2. Pedir URLs firmadas para las previews (el ZIP arma las suyas
+      //    adentro de subirZip, según si hace falta multipart o no).
       setFase("subiendo");
       setMensaje("Subiendo a R2...");
-      const urls = await crearUrlsDeSubida(eventoId, previews.length, zip.type);
+      const urlsPreviews = await crearUrlsDePreviews(eventoId, previews.length);
 
       // 3. Subir todo directo a R2, con progreso agregado por bytes.
-      const totalBytes = zip.size + previews.reduce((acc, p) => acc + p.blob.size, 0);
-      const subidoPorArchivo = new Map<string, number>();
-      const actualizarProgreso = (id: string, bytes: number) => {
-        subidoPorArchivo.set(id, bytes);
-        const total = Array.from(subidoPorArchivo.values()).reduce((a, b) => a + b, 0);
-        setProgreso(Math.min(100, Math.round((total / totalBytes) * 100)));
+      const totalBytesPreviews = previews.reduce((acc, p) => acc + p.blob.size, 0);
+      const totalBytes = zip.size + totalBytesPreviews;
+
+      let subidoZip = 0;
+      const subidoPorPreview = new Map<number, number>();
+      const actualizarProgreso = () => {
+        const subidoPreviews = Array.from(subidoPorPreview.values()).reduce((a, b) => a + b, 0);
+        setProgresoBytes({ subido: subidoZip + subidoPreviews, total: totalBytes });
       };
 
-      await Promise.all([
-        subirArchivo(urls.zip.url, zip, zip.type || "application/zip", (b) =>
-          actualizarProgreso("zip", b)
-        ),
-        conConcurrenciaLimitada(previews, CONCURRENCIA_SUBIDA, async (preview, i) => {
-          await subirArchivo(urls.previews[i].url, preview.blob, "image/jpeg", (b) =>
-            actualizarProgreso(`preview-${i}`, b)
-          );
-        }),
-      ]);
+      // Si una de las dos falla, cancelamos la otra — si no, la que sigue
+      // bien termina subiendo archivos que van a quedar huérfanos (sin
+      // registro en la base) porque igual vamos a mostrar el error.
+      const subidaZip = subirZip(
+        zip,
+        eventoId,
+        (subido) => {
+          subidoZip = subido;
+          actualizarProgreso();
+        },
+        controlador.signal
+      ).catch((err) => {
+        controlador.abort();
+        throw err;
+      });
+
+      const subidaPreviews = conConcurrenciaLimitada(previews, CONCURRENCIA_SUBIDA, async (preview, i) => {
+        await subirArchivo(
+          urlsPreviews[i].url,
+          preview.blob,
+          "image/jpeg",
+          (b) => {
+            subidoPorPreview.set(i, b);
+            actualizarProgreso();
+          },
+          controlador.signal
+        );
+      }).catch((err) => {
+        controlador.abort();
+        throw err;
+      });
+
+      await Promise.all([subidaZip, subidaPreviews]);
 
       // 4. Registrar todo en la base, generar código y mandar el mail.
       setMensaje("Guardando...");
@@ -106,7 +132,7 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
         eventoId,
         zip.size,
         previews.map((p, i) => ({
-          key: urls.previews[i].key,
+          key: urlsPreviews[i].key,
           ancho: p.ancho,
           alto: p.alto,
           orden: i,
@@ -123,8 +149,10 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
       setFase("listo");
     } catch (err) {
       console.error(err);
-      setError("Algo falló durante la subida. Podés reintentar.");
+      setError(err instanceof Error ? err.message : "Algo falló durante la subida. Podés reintentar.");
       setFase("idle");
+    } finally {
+      controladorRef.current = null;
     }
   };
 
@@ -145,6 +173,9 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
       </div>
     );
   }
+
+  const porcentaje =
+    progresoBytes.total > 0 ? Math.round((progresoBytes.subido / progresoBytes.total) * 100) : 0;
 
   return (
     <div className="rounded-lg border border-border/60 p-6">
@@ -177,7 +208,7 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
           />
           {zip && (
             <p className="text-sm text-muted-foreground">
-              {zip.name} — {(zip.size / 1024 / 1024).toFixed(1)} MB
+              {zip.name} — {aMB(zip.size)} MB
             </p>
           )}
         </div>
@@ -186,12 +217,26 @@ export function SubidaFotos({ eventoId }: { eventoId: string }) {
           <div className="flex flex-col gap-2">
             <p className="text-sm text-muted-foreground">{mensaje}</p>
             {fase === "subiendo" && (
-              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${progreso}%` }}
-                />
-              </div>
+              <>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${porcentaje}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {porcentaje}% — {aMB(progresoBytes.subido)} MB / {aMB(progresoBytes.total)} MB
+                  </p>
+                  <button
+                    type="button"
+                    onClick={cancelar}
+                    className="text-sm text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,8 @@ function Campo({
 
 export function AgendarForm({ deportes }: { deportes: string[] }) {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetTurnstile, setResetTurnstile] = useState(0);
   const {
     register,
     handleSubmit,
@@ -56,14 +59,39 @@ export function AgendarForm({ deportes }: { deportes: string[] }) {
 
   const onSubmit = async (datos: SolicitudOutput) => {
     setErrorGeneral(null);
-    const resultado = await crearSolicitud(datos);
+
+    if (!turnstileToken) {
+      setErrorGeneral("Esperá un segundo a que se verifique que no sos un robot.");
+      return;
+    }
+
+    const resultado = await crearSolicitud(datos, turnstileToken);
     if (resultado?.error) {
       setErrorGeneral(resultado.error);
+      setTurnstileToken(null);
+      setResetTurnstile((n) => n + 1);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      {/* Honeypot: invisible para una persona, tentador para un bot que
+          completa todos los inputs de un formulario. Si viene con contenido,
+          el servidor descarta la solicitud en silencio. */}
+      <div
+        style={{ position: "absolute", left: "-9999px" }}
+        aria-hidden="true"
+      >
+        <label htmlFor="sitioWeb">No completar este campo</label>
+        <input
+          id="sitioWeb"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          {...register("sitioWeb")}
+        />
+      </div>
+
       <Campo label="Deporte" error={errors.deporte?.message}>
         <Select
           value={deporteSeleccionado}
@@ -131,6 +159,8 @@ export function AgendarForm({ deportes }: { deportes: string[] }) {
           </Campo>
         </div>
       </div>
+
+      <TurnstileWidget onToken={setTurnstileToken} resetTrigger={resetTurnstile} />
 
       {errorGeneral && (
         <p className="text-sm text-destructive">{errorGeneral}</p>

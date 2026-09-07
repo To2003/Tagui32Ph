@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { obtenerBaseUrl } from "@/lib/base-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const base = obtenerBaseUrl();
 
   return [
     { url: `${base}/`, changeFrequency: "monthly", priority: 1 },

@@ -4,9 +4,8 @@ import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearPreferencia } from "@/lib/mercadopago";
 import { validarCuponDescuento } from "@/lib/db/configuracion";
 import { enviarMailPagoConfirmado } from "@/lib/mail";
+import { obtenerBaseUrl } from "@/lib/base-url";
 import type { Evento } from "@/lib/db/tipos";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
 
 // Cupón del 100%: no hay nada que cobrarle a Mercado Pago (de hecho su API
 // rechaza una preferencia con unit_price 0). Habilitamos directo, con el
@@ -41,7 +40,7 @@ async function canjearCuponGratis(evento: Evento, codigo: string) {
     });
   }
 
-  return `${BASE_URL}/galeria/exito?external_reference=${evento.id}`;
+  return `${obtenerBaseUrl()}/galeria/exito?external_reference=${evento.id}`;
 }
 
 export async function POST(request: Request) {
