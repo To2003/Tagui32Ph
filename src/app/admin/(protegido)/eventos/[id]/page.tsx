@@ -9,6 +9,7 @@ import { EditarPrecio } from "@/components/admin/editar-precio";
 import { SubidaFotos } from "@/components/admin/subida-fotos";
 import { ReenviarMailBoton } from "@/components/admin/reenviar-mail-boton";
 import { ExtenderVencimientoBoton } from "@/components/admin/extender-vencimiento-boton";
+import { MarcarPagoManualBoton } from "@/components/admin/marcar-pago-manual-boton";
 import { confirmarEvento, rechazarEvento } from "../actions";
 import type { Evento } from "@/lib/db/tipos";
 
@@ -52,7 +53,12 @@ export default async function EventoDetallePage({
 
   let cantidadFotos = 0;
   let codigoAcceso: { codigo: string; expira_en: string } | null = null;
-  let pago: { estado: string; monto_centavos: number; created_at: string } | null = null;
+  let pago: {
+    estado: string;
+    monto_centavos: number;
+    created_at: string;
+    mp_payment_id: string;
+  } | null = null;
 
   if (yaTieneFotos) {
     const [{ count }, { data: codigo }, { data: pagoData }] = await Promise.all([
@@ -66,7 +72,7 @@ export default async function EventoDetallePage({
         .maybeSingle(),
       supabase
         .from("pagos")
-        .select("estado, monto_centavos, created_at")
+        .select("estado, monto_centavos, created_at, mp_payment_id")
         .eq("evento_id", id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -76,6 +82,8 @@ export default async function EventoDetallePage({
     codigoAcceso = codigo;
     pago = pagoData;
   }
+
+  const pagoEsManual = pago?.mp_payment_id?.startsWith("manual-") ?? false;
 
   return (
     <div className="max-w-2xl">
@@ -180,12 +188,18 @@ export default async function EventoDetallePage({
                 <p className="mt-3 text-sm text-muted-foreground">
                   Pago: {ETIQUETAS_PAGO[pago.estado] ?? pago.estado} —{" "}
                   {formatearPrecio(pago.monto_centavos)} —{" "}
-                  {formatearFechaHora(pago.created_at)}
+                  {formatearFechaHora(pago.created_at)} —{" "}
+                  {pagoEsManual ? (
+                    <span className="font-medium text-primary">marcado a mano</span>
+                  ) : (
+                    <span className="font-medium text-emerald-400">verificado por Mercado Pago</span>
+                  )}
                 </p>
               )}
               <div className="mt-4 flex flex-wrap gap-3">
                 <ReenviarMailBoton eventoId={e.id} />
                 <ExtenderVencimientoBoton eventoId={e.id} />
+                {e.estado === "fotos_subidas" && <MarcarPagoManualBoton eventoId={e.id} />}
               </div>
             </>
           )}

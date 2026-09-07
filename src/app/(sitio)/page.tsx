@@ -5,6 +5,7 @@ import { obtenerConfiguracionCompleta } from "@/lib/db/configuracion";
 import { formatearPrecio } from "@/lib/fecha";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { urlPublicaPreview } from "@/lib/r2";
+import { Markdown } from "@/components/markdown";
 import type { FotoPortfolio } from "@/lib/db/tipos";
 
 // El precio y el portfolio salen de la base; revalidamos cada 5 minutos para
@@ -182,19 +183,15 @@ export default async function Home() {
                 />
               )}
               <div className="flex flex-col gap-6">
-                {config.sobre_mi_bio && (
-                  <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
-                    {config.sobre_mi_bio}
-                  </p>
-                )}
+                {config.sobre_mi_bio && <Markdown>{config.sobre_mi_bio}</Markdown>}
                 {config.sobre_mi_hobbies && (
                   <div>
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">
                       Fuera de la cancha
                     </p>
-                    <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground">
-                      {config.sobre_mi_hobbies}
-                    </p>
+                    <div className="mt-1 text-foreground [&_p]:text-foreground">
+                      <Markdown>{config.sobre_mi_hobbies}</Markdown>
+                    </div>
                   </div>
                 )}
               </div>
@@ -219,9 +216,9 @@ export default async function Home() {
             {config.sobre_mi_programador_texto && (
               <div className="mt-12 rounded-lg border border-primary/30 bg-primary/5 p-6 sm:p-8">
                 <p className="text-sm uppercase tracking-[0.3em] text-primary">Dato de color</p>
-                <p className="mt-3 whitespace-pre-line leading-relaxed text-foreground">
-                  {config.sobre_mi_programador_texto}
-                </p>
+                <div className="mt-3 text-foreground [&_p]:text-foreground">
+                  <Markdown>{config.sobre_mi_programador_texto}</Markdown>
+                </div>
                 {config.sobre_mi_programador_link && (
                   <a
                     href={config.sobre_mi_programador_link}

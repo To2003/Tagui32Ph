@@ -54,12 +54,18 @@ export default async function SobreMiAdminPage({
           <Label htmlFor="bio">Sobre vos</Label>
           <p className="text-sm text-muted-foreground">
             Quién sos, hace cuánto sacás fotos, qué te gusta del deporte amateur.
+            Admite Markdown: <code>## título</code>, <code>**negrita**</code>,{" "}
+            <code>- lista</code>.
           </p>
           <Textarea id="bio" name="bio" defaultValue={config.sobre_mi_bio} rows={6} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="hobbies">Hobbies</Label>
+          <p className="text-sm text-muted-foreground">
+            Admite Markdown: <code>## título</code>, <code>**negrita**</code>,{" "}
+            <code>- lista</code>.
+          </p>
           <Textarea
             id="hobbies"
             name="hobbies"
@@ -87,6 +93,8 @@ export default async function SobreMiAdminPage({
             <Label htmlFor="programadorTexto">Texto</Label>
             <p className="text-sm text-muted-foreground">
               Tu momento de propaganda. Se muestra en un cartel destacado.
+              Admite Markdown: <code>## título</code>, <code>**negrita**</code>,{" "}
+              <code>- lista</code>.
             </p>
             <Textarea
               id="programadorTexto"

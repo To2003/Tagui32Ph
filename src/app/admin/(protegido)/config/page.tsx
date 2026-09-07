@@ -133,7 +133,8 @@ export default async function ConfigPage({
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-6">
           <Label htmlFor="terminosTexto">Términos y condiciones</Label>
           <p className="mb-1 text-sm text-muted-foreground">
-            Se muestra tal cual en /terminos. Los saltos de línea se respetan.
+            Admite Markdown: <code>## título</code>, <code>**negrita**</code>,{" "}
+            <code>- lista</code>. Se renderiza así en /terminos.
           </p>
           <Textarea
             id="terminosTexto"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { obtenerConfiguracion } from "@/lib/db/configuracion";
+import { Markdown } from "@/components/markdown";
 
 export const revalidate = 300;
 
@@ -15,9 +16,9 @@ export default async function TerminosPage() {
       <h1 className="font-heading text-4xl tracking-wide text-foreground">
         Términos y condiciones
       </h1>
-      <p className="mt-8 whitespace-pre-line leading-relaxed text-muted-foreground">
-        {texto}
-      </p>
+      <div className="mt-8">
+        <Markdown>{texto}</Markdown>
+      </div>
     </div>
   );
 }
